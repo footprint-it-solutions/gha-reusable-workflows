@@ -117,7 +117,7 @@ jobs:
         tofu apply -input=false -auto-approve plan.tfplan
 
     - name: Upload state file to S3
-      run: aws s3 cp terraform.tfstate s3://${{ inputs.bucket_name }}/plan.tfstate
+      run: aws s3 cp terraform.tfstate s3://${{ inputs.bucket_name }}/bootstrap.tfstate
       if: |
         always() &&
         github.ref == 'refs/heads/main' &&
