@@ -1,0 +1,117 @@
+on:
+  workflow_call:
+    inputs:
+      environment_name:
+        description: "Environment to be bootstrappped"
+        required: true
+        type: string
+      git_ref:
+        description: "Git ref to be planned"
+        required: false
+        type: string
+      working_directory:
+        description: "Directory that holds Terraform or OpenTofu code"
+        required: true
+        type: string
+      tofu_version:
+        description: "Tofu Version"
+        required: false
+        default: 1.9.0
+        type: string
+
+jobs:
+  bootstrap:
+    defaults:
+      run:
+        working-directory: ${{ inputs.working_directory }}
+    name: Tofu Bootstrap
+    runs-on:
+      group: footprint
+    environment: ${{ inputs.environment_name }}
+    steps:
+    - name: Setup Tofu
+      uses: opentofu/setup-opentofu@v1.0.2
+      with:
+        tofu_version: ${{ inputs.tofu_version }}
+        tofu_wrapper: true
+
+    - name: Checkout repository with provided git ref
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: lts/*
+
+    - name: Tofu Format
+      id: fmt
+      shell: bash
+      run: tofu fmt -check
+
+    - name: Install AWS CLI
+      uses: unfor19/install-aws-cli-action@v1
+      with:
+        version: 2
+        arch: amd64
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-region: eu-west-1
+        role-to-assume: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/GitHubActions
+        role-session-name: GitHubActions
+
+    - name: Tofu Init
+      id: init
+      shell: bash
+      run: |
+        tofu init
+
+    - name: Tofu Validate
+      id: validate
+      shell: bash
+      run: |
+        tofu validate
+
+    # - name: Trivy Scan
+    #   uses: docker://aquasec/trivy
+    #   with:
+    #     args: 'config --skip-dirs .terraform .'
+
+    - name: Download state file from S3
+      run: aws s3 cp s3://${{ inputs.environment_name }}.${{ inputs.domain }}/bootstrap.tfstate terraform.tfstate
+      continue-on-error: true
+
+    - name: Tofu Plan
+      id: plan
+      shell: bash
+      run: |
+        tofu plan -detailed-exitcode -input=false -out=plan.tfplan \
+        || echo "exitcode=$?" >> $GITHUB_OUTPUT
+
+    - name: Check if plan failed
+      run: exit 1
+      if: |
+        steps.plan.outputs.exitcode == '1'
+
+    - name: User instructions
+      run: echo "Merge this to the main branch to apply"
+      if: |
+        github.ref != 'refs/heads/main' &&
+        steps.plan.outputs.exitcode == '2'
+
+    - name: Tofu Apply
+      id: apply
+      if: |
+        github.ref == 'refs/heads/main' &&
+        steps.plan.outputs.exitcode == '2'
+      shell: bash
+      run: |
+        tofu apply -input=false -auto-approve plan.tfplan
+
+    - name: Upload state file to S3
+      run: aws s3 cp terraform.tfstate s3://${{ inputs.environment_name }}.${{ inputs.domain }}/plan.tfstate
+      if: |
+        always() &&
+        github.ref == 'refs/heads/main' &&
+        steps.apply.conclusion != null

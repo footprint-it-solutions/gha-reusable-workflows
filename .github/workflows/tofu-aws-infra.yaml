@@ -1,0 +1,143 @@
+on:
+  workflow_call:
+    inputs:
+      action:
+        description: "Action to be performed"
+        required: false
+        type: string
+        default: ${{ github.ref == 'refs/heads/main' && 'apply' || 'plan' }}
+      environment_name:
+        description: "Environment to be provisioned"
+        required: true
+        type: string
+      git_ref:
+        description: "Git ref to be planned"
+        required: false
+        type: string
+      working_directory:
+        description: "Directory that holds Terraform or OpenTofu code"
+        required: true
+        type: string
+      tofu_version:
+        description: "Tofu Version"
+        required: false
+        default: 1.9.1
+        type: string
+
+jobs:
+  infra:
+    defaults:
+      run:
+        working-directory: ${{ inputs.working_directory }}
+    name: Tofu Provision
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment_name }}
+    steps:
+    - name: Setup Tofu
+      uses: opentofu/setup-opentofu@v1.0.2
+      with:
+        tofu_version: ${{ inputs.tofu_version }}
+        tofu_wrapper: true
+
+    - name: Checkout repository with provided git ref
+      uses: actions/checkout@v4
+      with:
+        ref: ${{ inputs.git_ref || github.ref }}
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: lts/*
+
+    - name: Tofu Format
+      id: fmt
+      shell: bash
+      run: tofu fmt -check
+
+    - name: Install AWS CLI
+      uses: unfor19/install-aws-cli-action@v1
+      with:
+        version: 2
+        arch: amd64
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-region: ${{ vars.AWS_REGION }}
+        role-to-assume: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/GitHubActions
+        role-session-name: GitHubActions
+
+    - name: Tofu Init
+      id: init
+      shell: bash
+      run: |
+        tofu init
+
+    - name: Tofu Validate
+      id: validate
+      shell: bash
+      run: |
+        tofu validate
+
+    # Disable for speed
+    # - name: Run Trivy vulnerability scanner
+    #   uses: aquasecurity/trivy-action@0.28.0
+    #   with:
+    #     scan-type: fs
+    #     scan-ref: '.'
+    #     skip-dirs: .terraform
+    #   if: |
+    #     inputs.action == 'apply' || inputs.action == 'plan'
+
+    - name: Remove Helm releases from state
+      continue-on-error: true
+      if: |
+        inputs.action == 'destroy'
+      shell: bash
+      run: |
+        for line in $(tofu state list | grep helm_release); do
+          tofu state rm $line
+        done
+
+    - name: Tofu Plan
+      env:
+        TF_VAR_argocd_github_app_id: ${{ vars.ARGOCD_GITHUB_APP_ID }}
+        TF_VAR_argocd_github_app_installation_id: ${{ vars.ARGOCD_GITHUB_APP_INSTALLATION_ID }}
+        TF_VAR_argocd_github_app_private_key: ${{ secrets.ARGOCD_GITHUB_APP_PRIVATE_KEY }}
+      id: plan
+      shell: bash
+      run: |
+        if [ "${{ inputs.action }}" == "destroy" ]; then
+          tofu plan -destroy -detailed-exitcode -exclude=module.route53 -input=false -out=plan.tfplan \
+          || echo "exitcode=$?" >> $GITHUB_OUTPUT
+        elif [ "${{ github.ref }}" != "refs/heads/main" ]; then
+          tofu plan -detailed-exitcode -input=false -lock=false -out=plan.tfplan \
+          || echo "exitcode=$?" >> $GITHUB_OUTPUT
+        else
+          tofu plan -detailed-exitcode -input=false -out=plan.tfplan \
+          || echo "exitcode=$?" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Check if plan failed
+      run: exit 1
+      if: |
+        steps.plan.outputs.exitcode == '1'
+
+    - name: User instructions
+      run: echo "Merge this to the main branch to apply"
+      if: |
+        github.ref != 'refs/heads/main' &&
+        steps.plan.outputs.exitcode == '2'
+
+    - name: Tofu Apply
+      env:
+        TF_VAR_ARGOCD_GITHUB_APP_ID: ${{ vars.ARGOCD_GITHUB_APP_ID }}
+        TF_VAR_ARGOCD_GITHUB_APP_INSTALLATION_ID: ${{ vars.ARGOCD_GITHUB_APP_INSTALLATION_ID }}
+        TF_VAR_ARGOCD_GITHUB_APP_PEM_FILE: ${{ secrets.ARGOCD_GITHUB_APP_PRIVATE_KEY }}
+      id: apply
+      if: |
+        steps.plan.outputs.exitcode == '2' &&
+        (inputs.action == 'apply' || inputs.action == 'destroy')
+      shell: bash
+      run: |
+        tofu apply -input=false -auto-approve plan.tfplan
