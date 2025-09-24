@@ -1,8 +1,8 @@
 on:
   workflow_call:
     inputs:
-      domain:
-        description: "Comnpany domain"
+      bucket_name:
+        description: "S3 bucket name"
         required: true
         type: string
       environment_name:
@@ -82,7 +82,7 @@ jobs:
     #     args: 'config --skip-dirs .terraform .'
 
     - name: Download state file from S3
-      run: aws s3 cp s3://${{ inputs.environment_name }}.${{ inputs.domain }}/bootstrap.tfstate terraform.tfstate
+      run: aws s3 cp s3://${{ inputs.bucket_name }}/bootstrap.tfstate terraform.tfstate
       continue-on-error: true
 
     - name: Tofu Plan
@@ -113,7 +113,7 @@ jobs:
         tofu apply -input=false -auto-approve plan.tfplan
 
     - name: Upload state file to S3
-      run: aws s3 cp terraform.tfstate s3://${{ inputs.environment_name }}.${{ inputs.domain }}/plan.tfstate
+      run: aws s3 cp terraform.tfstate s3://${{ inputs.bucket_name }}/plan.tfstate
       if: |
         always() &&
         github.ref == 'refs/heads/main' &&
