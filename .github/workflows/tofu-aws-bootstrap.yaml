@@ -1,6 +1,10 @@
 on:
   workflow_call:
     inputs:
+      domain:
+        description: "Comnpany domain"
+        required: true
+        type: string
       environment_name:
         description: "Environment to be bootstrappped"
         required: true
