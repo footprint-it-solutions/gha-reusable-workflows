@@ -29,8 +29,7 @@ jobs:
       run:
         working-directory: ${{ inputs.working_directory }}
     name: Tofu Bootstrap
-    runs-on:
-      group: footprint
+    runs-on: ubuntu-latest
     environment: ${{ inputs.environment_name }}
     steps:
     - name: Setup Tofu
