@@ -108,7 +108,7 @@ jobs:
       shell: bash
       run: |
         if [ "${{ inputs.action }}" == "destroy" ]; then
-          tofu plan -destroy -detailed-exitcode -exclude=module.route53 -input=false -out=plan.tfplan \
+          tofu plan -destroy -detailed-exitcode -exclude=module.route53 -exclude=module.route53_public -input=false -out=plan.tfplan \
           || echo "exitcode=$?" >> $GITHUB_OUTPUT
         elif [ "${{ github.ref }}" != "refs/heads/main" ]; then
           tofu plan -detailed-exitcode -input=false -lock=false -out=plan.tfplan \
