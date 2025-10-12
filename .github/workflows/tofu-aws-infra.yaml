@@ -143,6 +143,22 @@ jobs:
           echo "exists=false" >> $GITHUB_OUTPUT
         fi
 
+    - name: Destroy NLBs
+      if: |
+        inputs.action == 'destroy'
+      shell: bash
+      run: |
+        ALL_NLB_ARNS=$(aws elbv2 describe-load-balancers --query "LoadBalancers[].LoadBalancerArn" --output text)
+
+        for nlb_arn in $ALL_NLB_ARNS; do
+          TAGS=$(aws elbv2 describe-tags --resource-arns "$nlb_arn" --query "TagDescriptions[].Tags[]" --output json)
+
+          if echo "$TAGS" | jq -e '.[] | select(.Key == "elbv2.k8s.aws/cluster" and .Value == "${{ inputs.environment_name }}")' > /dev/null; then
+            echo "Deleting NLB: $nlb_arn"
+            aws elbv2 delete-load-balancer --load-balancer-arn "$nlb_arn"
+          fi
+        done
+
     - name: Tofu Apply
       env:
         TF_VAR_ARGOCD_GITHUB_APP_ID: ${{ vars.ARGOCD_GITHUB_APP_ID }}
