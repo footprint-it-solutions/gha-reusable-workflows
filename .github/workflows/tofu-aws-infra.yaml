@@ -149,8 +149,8 @@ jobs:
       shell: bash
       run: |
         # Destroy NLBs
-        NLB_ARNS_JSON=$(aws elbv2 describe-load-balancers --query "LoadBalancers[].LoadBalancerArn" --output json)
-        echo "$NLB_ARNS_JSON" | jq -r '.[]' | while read -r nlb_arn; do
+        NLB_ARNS=$(aws elbv2 describe-load-balancers --query "LoadBalancers[].LoadBalancerArn" --output json)
+        echo "$NLB_ARNS" | jq -r '.[]' | while read -r nlb_arn; do
           TAGS=$(aws elbv2 describe-tags --resource-arns "$nlb_arn" --query "TagDescriptions[].Tags[]" --output json)
 
           if echo "$TAGS" | jq -e '.[] | select(.Key == "elbv2.k8s.aws/cluster" and .Value == "${{ inputs.environment_name }}")' > /dev/null; then
