@@ -143,20 +143,29 @@ jobs:
           echo "exists=false" >> $GITHUB_OUTPUT
         fi
 
-    - name: Destroy NLBs
+    - name: Destroy NLBs and Security Groups
       if: |
         inputs.action == 'destroy'
       shell: bash
       run: |
-        ALL_NLB_ARNS=$(aws elbv2 describe-load-balancers --query "LoadBalancers[].LoadBalancerArn" --output text)
+        # Destroy NLBs
+        ALL_NLB_ARNS=$(AWS_PROFILE=Sandbox-330880211149 aws elbv2 describe-load-balancers --query "LoadBalancers[].LoadBalancerArn" --output text)
 
         for nlb_arn in $ALL_NLB_ARNS; do
-          TAGS=$(aws elbv2 describe-tags --resource-arns "$nlb_arn" --query "TagDescriptions[].Tags[]" --output json)
+          TAGS=$(AWS_PROFILE=Sandbox-330880211149 aws elbv2 describe-tags --resource-arns "$nlb_arn" --query "TagDescriptions[].Tags[]" --output json)
 
           if echo "$TAGS" | jq -e '.[] | select(.Key == "elbv2.k8s.aws/cluster" and .Value == "${{ inputs.environment_name }}")' > /dev/null; then
             echo "Deleting NLB: $nlb_arn"
-            aws elbv2 delete-load-balancer --load-balancer-arn "$nlb_arn"
+            AWS_PROFILE=Sandbox-330880211149 aws elbv2 delete-load-balancer --load-balancer-arn "$nlb_arn"
           fi
+        done
+
+        # Destroy Security Groups
+        SG_IDS=$(AWS_PROFILE=Sandbox-330880211149 aws ec2 describe-security-groups --filters "Name=tag:elbv2.k8s.aws/cluster,Values=${{ inputs.environment_name }}" --query "SecurityGroups[].GroupId" --output text)
+
+        for sg_id in $SG_IDS; do
+          echo "Deleting Security Group: $sg_id"
+          AWS_PROFILE=Sandbox-330880211149 aws ec2 delete-security-group --group-id "$sg_id"
         done
 
     - name: Tofu Apply
