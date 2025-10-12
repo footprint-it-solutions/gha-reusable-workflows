@@ -129,6 +129,20 @@ jobs:
         github.ref != 'refs/heads/main' &&
         steps.plan.outputs.exitcode == '2'
 
+    - name: Check EKS Cluster Existence
+      id: check_eks_cluster
+      if: |
+        steps.plan.outputs.exitcode == '2'
+      shell: bash
+      run: |
+        set +e # Don't exit on error for this command
+        aws eks describe-cluster --name ${{ inputs.environment_name }} > /dev/null 2>&1
+        if [ $? -eq 0 ]; then
+          echo "exists=true" >> $GITHUB_OUTPUT
+        else
+          echo "exists=false" >> $GITHUB_OUTPUT
+        fi
+
     - name: Tofu Apply
       env:
         TF_VAR_ARGOCD_GITHUB_APP_ID: ${{ vars.ARGOCD_GITHUB_APP_ID }}
@@ -137,7 +151,11 @@ jobs:
       id: apply
       if: |
         steps.plan.outputs.exitcode == '2' &&
-        (inputs.action == 'apply' || inputs.action == 'destroy')
+        (
+          (inputs.action == 'apply' && github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.check_eks_cluster.outputs.exists == 'true') ||
+          (inputs.action == 'apply' && github.event_name == 'workflow_dispatch') ||
+          (inputs.action == 'destroy')
+        )
       shell: bash
       run: |
         tofu apply -input=false -auto-approve plan.tfplan
