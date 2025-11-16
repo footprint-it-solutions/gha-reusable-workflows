@@ -73,6 +73,22 @@ jobs:
           role-to-assume: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/GitHubActions
           role-session-name: GitHubActions
 
+      # Define Environment Variables for clarity
+      - name: ⚙️ Set GitHub Authentication Variables
+        run: |
+          echo "GH_SSH_BASE=ssh://git@github.com/" >> $GITHUB_ENV
+          echo "GH_HTTPS_AUTH_BASE=https://${{ secrets.GITHUB_TOKEN }}@github.com/" >> $GITHUB_ENV
+
+      - name: 🔄 Configure Git URL Rewriting for GHA
+        run: |
+          # 1. Rewrite the SSH base URL to the authenticated HTTPS URL
+          #    e.g., Change "ssh://git@github.com/..." to "https://<TOKEN>@github.com/..."
+          git config --global url."${{ env.GH_HTTPS_AUTH_BASE }}".insteadOf "${{ env.GH_SSH_BASE }}"
+
+          # 2. Add an extra Git configuration to ensure the token is used for all HTTPS operations,
+          #    in case the module source was originally HTTPS but needed the token for auth.
+          git config --global url."https://${{ secrets.GITHUB_TOKEN }}@github.com/".insteadOf "https://github.com/"
+
       - name: OpenTofu Init
         id: init
         run: tofu init
