@@ -50,13 +50,6 @@ jobs:
         with:
           ref: ${{ inputs.git_ref || github.ref }}
 
-      - name: Checkout footprint-it-solutions/terraform-modules
-        uses: actions/checkout@v2
-        with:
-          ref: gha-private-repo-auth
-          repository: footprint-it-solutions/terraform-modules
-          token: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -80,25 +73,39 @@ jobs:
           role-to-assume: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/GitHubActions
           role-session-name: GitHubActions
 
-      - name: ⚙️ Configure Git Credentials for HTTPS
+      - uses: actions/create-github-app-token@v2
+        id: app-token
+        with:
+          app-id: ${{ vars.TF_MODULE_PULLER_APP_ID }}
+          private-key: ${{ secrets.TF_MODULE_PULLER_PRIVATE_KEY }}
+
+      - name: Configure Git for Private TF Modules
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TOKEN: ${{ steps.generate_token.outputs.token }}
         run: |
-          # Store the token as a credential helper for all HTTPS operations on github.com
-          git config --global credential.helper store
-          echo "https://x-access-token:${GH_TOKEN}@github.com" > $HOME/.git-credentials
+          # This command tells Git to replace any 'https://github.com/'
+          # URL with an authenticated one using your token.
+          git config --global url."https://x-access-token:${{ env.TOKEN }}@github.com/".insteadOf "https://github.com/"
 
-      - name: 🔄 Configure Git URL Rewriting for GHA
-        run: |
-          # Define the authenticated HTTPS base for your specific repo
-          GH_HTTPS_AUTH_REPO_BASE="https://${{ secrets.GITHUB_TOKEN }}@github.com/footprint-it-solutions"
+      # - name: ⚙️ Configure Git Credentials for HTTPS
+      #   env:
+      #     GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #   run: |
+      #     # Store the token as a credential helper for all HTTPS operations on github.com
+      #     git config --global credential.helper store
+      #     echo "https://x-access-token:${GH_TOKEN}@github.com" > $HOME/.git-credentials
 
-          # Define the SSH base for your specific repo
-          GH_SSH_REPO_BASE="git::ssh://git@github.com/footprint-it-solutions"
+      # - name: 🔄 Configure Git URL Rewriting for GHA
+      #   run: |
+      #     # Define the authenticated HTTPS base for your specific repo
+      #     GH_HTTPS_AUTH_REPO_BASE="https://${{ secrets.GITHUB_TOKEN }}@github.com/footprint-it-solutions"
 
-          # Use insteadOf to replace the SSH repository source with the authenticated HTTPS source
-          # This rule replaces the entire repository identifier string.
-          git config --global url."${GH_HTTPS_AUTH_REPO_BASE}".insteadOf "${GH_SSH_REPO_BASE}"
+      #     # Define the SSH base for your specific repo
+      #     GH_SSH_REPO_BASE="git::ssh://git@github.com/footprint-it-solutions"
+
+      #     # Use insteadOf to replace the SSH repository source with the authenticated HTTPS source
+      #     # This rule replaces the entire repository identifier string.
+      #     git config --global url."${GH_HTTPS_AUTH_REPO_BASE}".insteadOf "${GH_SSH_REPO_BASE}"
 
       - name: OpenTofu Init
         id: init
