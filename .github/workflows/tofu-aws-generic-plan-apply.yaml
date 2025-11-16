@@ -1,0 +1,128 @@
+name: OpenTofu Plan and Apply
+
+on:
+  workflow_call:
+    inputs:
+      action:
+        description: "Action to be performed (plan, apply, destroy)"
+        required: false
+        type: string
+        default: ${{ github.ref == 'refs/heads/main' && 'apply' || 'plan' }}
+      working_directory:
+        description: "Directory that holds OpenTofu code"
+        required: true
+        type: string
+      aws_region:
+        description: "AWS region for deployment"
+        required: true
+        type: string
+      aws_account_id:
+        description: "AWS account ID for OIDC role assumption"
+        required: true
+        type: string
+      tofu_version:
+        description: "OpenTofu Version"
+        required: false
+        default: 1.9.1 # Updated to match tofu-aws-infra.yaml
+        type: string
+      environment_name:
+        description: "Environment name for GitHub Actions (optional)"
+        required: false
+        type: string
+      git_ref:
+        description: "Git ref to be planned (optional, for checkout)"
+        required: false
+        type: string
+
+jobs:
+  tofu:
+    defaults:
+      run:
+        working-directory: ${{ inputs.working_directory }}
+    name: OpenTofu Provision
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment_name }}
+    permissions:
+      id-token: write # Required for OIDC
+      contents: read # Required for actions/checkout
+      pull-requests: write # Required for commenting on PRs (if we add that later)
+    steps:
+      - name: Setup OpenTofu
+        uses: opentofu/setup-opentofu@v1.0.2
+        with:
+          tofu_version: ${{ inputs.tofu_version }}
+          tofu_wrapper: true
+
+      - name: Checkout repository with provided git ref
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.git_ref || github.ref }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+
+      - name: Tofu Format
+        id: fmt
+        shell: bash
+        run: tofu fmt -check
+
+      - name: Install AWS CLI
+        uses: unfor19/install-aws-cli-action@v1
+        with:
+          version: 2
+          arch: amd64
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: ${{ inputs.aws_region }}
+          role-to-assume: arn:aws:iam::${{ inputs.aws_account_id }}:role/GitHubActions
+          role-session-name: GitHubActions
+
+      - name: OpenTofu Init
+        id: init
+        run: tofu init
+
+      - name: OpenTofu Validate
+        id: validate
+        run: tofu validate
+
+      - name: OpenTofu Plan
+        id: plan
+        shell: bash
+        run: |
+          if [ "${{ inputs.action }}" == "destroy" ]; then
+            tofu plan -destroy -detailed-exitcode -input=false -out=plan.tfplan \
+            || echo "exitcode=$?" >> $GITHUB_OUTPUT
+          elif [ "${{ inputs.action }}" == "plan" ]; then
+            tofu plan -detailed-exitcode -input=false -lock=false -out=plan.tfplan \
+            || echo "exitcode=$?" >> $GITHUB_OUTPUT
+          else # Default to apply action for main branch pushes
+            tofu plan -detailed-exitcode -input=false -out=plan.tfplan \
+            || echo "exitcode=$?" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Check if plan failed
+        run: exit 1
+        if: |
+          steps.plan.outputs.exitcode == '1'
+
+      - name: User instructions
+        run: echo "Merge this to the main branch to apply"
+        if: |
+          github.ref != 'refs/heads/main' &&
+          steps.plan.outputs.exitcode == '2'
+
+      - name: OpenTofu Apply
+        id: apply
+        if: |
+          steps.plan.outputs.exitcode == '2' &&
+          (
+            (inputs.action == 'apply' && github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+            (inputs.action == 'apply' && github.event_name == 'workflow_dispatch') ||
+            (inputs.action == 'destroy')
+          )
+        run: |
+          tofu apply -input=false -auto-approve plan.tfplan
