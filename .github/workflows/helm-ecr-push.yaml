@@ -67,14 +67,16 @@ jobs:
             case "${{ inputs.environment_name }}" in
               sbx)
                 environment_full="sandbox"
+                owner="${{ github.repository_owner }}"
                 ;;
               dev)
-                environment_full="c9j1u8i9"
+                environment_full="dev"
+                owner="c9j1u8i9"
                 ;;
               *)
                 environment_full="${{ inputs.environment_name }}"
                 ;;
             esac
 
-            helm push "$packaged_chart_file" "oci://public.ecr.aws/${{ github.repository_owner }}-$environment_full/helm"
+            helm push "$packaged_chart_file" "oci://public.ecr.aws/$owner-$environment_full/helm"
           done
