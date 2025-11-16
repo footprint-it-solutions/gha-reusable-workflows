@@ -78,7 +78,7 @@ jobs:
         with:
           app-id: ${{ vars.TF_MODULE_PULLER_APP_ID }}
           owner: footprint-it-solutions
-          privateKey: ${{ secrets.TF_MODULE_PULLER_PRIVATE_KEY }}
+          private-key: ${{ secrets.TF_MODULE_PULLER_PRIVATE_KEY }}
           repositories: |
             terraform-modules
 
