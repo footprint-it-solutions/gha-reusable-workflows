@@ -40,6 +40,8 @@ jobs:
 
     - name: Checkout repository with provided git ref
       uses: actions/checkout@v4
+      with:
+        ref: ${{ inputs.git_ref || github.ref }}
 
     - name: Setup Node.js
       uses: actions/setup-node@v4
