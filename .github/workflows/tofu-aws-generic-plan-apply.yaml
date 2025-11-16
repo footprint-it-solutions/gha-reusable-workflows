@@ -12,14 +12,6 @@ on:
         description: "Directory that holds OpenTofu code"
         required: true
         type: string
-      aws_region:
-        description: "AWS region for deployment"
-        required: true
-        type: string
-      aws_account_id:
-        description: "AWS account ID for OIDC role assumption"
-        required: true
-        type: string
       tofu_version:
         description: "OpenTofu Version"
         required: false
@@ -77,8 +69,8 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-region: ${{ inputs.aws_region }}
-          role-to-assume: arn:aws:iam::${{ inputs.aws_account_id }}:role/GitHubActions
+          aws-region: ${{ vars.AWS_REGION }}
+          role-to-assume: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/GitHubActions
           role-session-name: GitHubActions
 
       - name: OpenTofu Init
