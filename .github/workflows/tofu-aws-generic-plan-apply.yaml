@@ -79,7 +79,7 @@ jobs:
           GH_HTTPS_AUTH_REPO_BASE="https://${{ secrets.GITHUB_TOKEN }}@github.com/footprint-it-solutions"
 
           # Define the SSH base for your specific repo
-          GH_SSH_REPO_BASE="ssh://git@github.com/footprint-it-solutions"
+          GH_SSH_REPO_BASE="git::ssh://git@github.com/footprint-it-solutions"
 
           # Use insteadOf to replace the SSH repository source with the authenticated HTTPS source
           # This rule replaces the entire repository identifier string.
