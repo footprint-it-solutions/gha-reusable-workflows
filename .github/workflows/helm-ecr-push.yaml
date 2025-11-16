@@ -39,7 +39,7 @@ jobs:
           sudo snap install yq
 
           # Find all Chart.yaml files and iterate through their parent directories
-          find helm-charts -name "Chart.yaml" | while read chart_file; do
+          find . -name "Chart.yaml" | while read chart_file; do
             chart_dir=$(dirname "$chart_file")
             echo "Processing Helm chart in: $chart_dir"
 
