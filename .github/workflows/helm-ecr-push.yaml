@@ -1,0 +1,63 @@
+---
+name: Helm Chart ECR Push
+
+on:
+  workflow_call:
+    inputs:
+      environment_name:
+        description: "Environment name for AWS (e.g., sbx, dev)"
+        required: true
+        type: string
+
+jobs:
+  build-and-push-helm-charts:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment_name }}
+    permissions:
+      id-token: write # Required for OIDC authentication with AWS
+      contents: read # Required for actions/checkout
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: ${{ vars.AWS_REGION }}
+          role-to-assume: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/GitHubActions
+          role-session-name: GitHubActionsHelmPush
+
+      - name: Login to ECR
+        run: |
+          aws ecr get-login-password --region ${{ vars.AWS_REGION }} | helm registry login --username AWS \
+          --password-stdin ${{ vars.AWS_ACCOUNT_ID }}.dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com
+
+      - name: Package and Push Helm Charts
+        run: |
+          # Install yq for parsing Chart.yaml
+          sudo snap install yq
+
+          # Find all Chart.yaml files and iterate through their parent directories
+          find helm-charts -name "Chart.yaml" | while read chart_file; do
+            chart_dir=$(dirname "$chart_file")
+            echo "Processing Helm chart in: $chart_dir"
+
+            # Extract chart name and version from Chart.yaml
+            chart_name=$(yq e '.name' "$chart_file")
+            chart_version=$(yq e '.version' "$chart_file")
+
+            if [ -z "$chart_name" ] || [ -z "$chart_version" ]; then
+              echo "Error: Could not extract name or version from $chart_file. Skipping."
+              continue
+            fi
+
+            echo "Packaging $chart_name:$chart_version from $chart_dir"
+            helm package "$chart_dir"
+
+            # The packaged chart will be named like <chart-name>-<chart-version>.tgz
+            packaged_chart_file="${chart_name}-${chart_version}.tgz"
+
+            echo "Pushing $packaged_chart_file to ECR"
+            helm push "$packaged_chart_file" "oci://${{ vars.AWS_ACCOUNT_ID }}.dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com/helm/${chart_name}"
+          done
