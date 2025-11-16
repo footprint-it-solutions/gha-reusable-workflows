@@ -68,6 +68,9 @@ jobs:
               sbx)
                 environment_full="sandbox"
                 ;;
+              dev)
+                environment_full="c9j1u8i9"
+                ;;
               *)
                 environment_full="${{ inputs.environment_name }}"
                 ;;
