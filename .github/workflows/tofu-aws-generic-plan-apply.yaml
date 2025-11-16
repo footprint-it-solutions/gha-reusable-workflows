@@ -50,6 +50,13 @@ jobs:
         with:
           ref: ${{ inputs.git_ref || github.ref }}
 
+      - name: Checkout footprint-it-solutions/terraform-modules
+        uses: actions/checkout@v2
+        with:
+          ref: gha-private-repo-auth
+          repository: footprint-it-solutions/terraform-modules
+          token: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
