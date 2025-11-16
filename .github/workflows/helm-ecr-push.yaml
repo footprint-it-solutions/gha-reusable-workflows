@@ -59,5 +59,5 @@ jobs:
             packaged_chart_file="${chart_name}-${chart_version}.tgz"
 
             echo "Pushing $packaged_chart_file to ECR"
-            helm push "$packaged_chart_file" "oci://${{ vars.AWS_ACCOUNT_ID }}.dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com/helm/${chart_name}"
+            helm push "$packaged_chart_file" "oci://${{ vars.AWS_ACCOUNT_ID }}.dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com/helm"
           done
