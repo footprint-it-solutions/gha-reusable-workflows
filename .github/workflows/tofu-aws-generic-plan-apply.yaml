@@ -73,6 +73,14 @@ jobs:
           role-to-assume: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/GitHubActions
           role-session-name: GitHubActions
 
+      - name: ⚙️ Configure Git Credentials for HTTPS
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Store the token as a credential helper for all HTTPS operations on github.com
+          git config --global credential.helper store
+          echo "https://x-access-token:${GH_TOKEN}@github.com" > $HOME/.git-credentials
+
       - name: 🔄 Configure Git URL Rewriting for GHA
         run: |
           # Define the authenticated HTTPS base for your specific repo
