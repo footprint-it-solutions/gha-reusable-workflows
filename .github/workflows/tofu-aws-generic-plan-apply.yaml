@@ -86,10 +86,10 @@ jobs:
         env:
           TOKEN: ${{ steps.generate_token.outputs.token }}
         run: |
-          # This command tells Git to replace any 'https://github.com/' or 'ssh://git@github.com/'
-          # URL with an authenticated one using your token.
-          git config --global url."https://x-access-token:${{ env.TOKEN }}@github.com/".insteadOf "ssh://git@github.com/"
-          git config --global --add url."https://x-access-token:${{ env.TOKEN }}@github.com/".insteadOf "https://github.com/"
+          # This command tells Git to replace any 'https://github.com/footprint-it-solutions'
+          # or 'ssh://git@github.com/footprint-it-solutions' URL with an authenticated one using your token.
+          git config --global url."https://x-access-token:${{ env.TOKEN }}@github.com/footprint-it-solutions".insteadOf "ssh://git@github.com/footprint-it-solutions"
+          git config --global --add url."https://x-access-token:${{ env.TOKEN }}@github.com/footprint-it-solutions".insteadOf "https://github.com/footprint-it-solutions"
 
       - name: OpenTofu Init
         id: init
