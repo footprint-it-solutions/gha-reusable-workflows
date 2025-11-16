@@ -84,7 +84,7 @@ jobs:
           fi
 
       - uses: actions/create-github-app-token@v2.1.4
-        id: app-token
+        id: generate_token
         with:
           app-id: ${{ vars.TF_MODULE_PULLER_APP_ID }}
           owner: footprint-it-solutions
