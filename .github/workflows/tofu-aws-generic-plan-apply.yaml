@@ -98,7 +98,7 @@ jobs:
         run: |
           # This command tells Git to replace any 'https://github.com/'
           # URL with an authenticated one using your token.
-          git config --global url."https://x-access-token:${{ env.secrets.GITHUB_TOKEN }}@github.com/".insteadOf "https://github.com/"
+          git config --global url."https://x-access-token:${{ env.TOKEN }}@github.com/".insteadOf "https://github.com/"
 
       # - name: ⚙️ Configure Git Credentials for HTTPS
       #   env:
