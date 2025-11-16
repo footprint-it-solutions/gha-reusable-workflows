@@ -87,8 +87,8 @@ jobs:
           ORG: ${{ github.repository_owner }}
           TOKEN: ${{ steps.generate_token.outputs.token }}
         run: |
-          # This command tells Git to replace any 'https://github.com/footprint-it-solutions'
-          # or 'ssh://git@github.com/footprint-it-solutions' URL with an authenticated one using your token.
+          # This command tells Git to replace any 'https://github.com/$ORG'
+          # or 'ssh://git@github.com/$ORG' URL with an authenticated one using your token.
           git config --global url."https://x-access-token:${{ env.TOKEN }}@github.com/${{ env.ORG }}".insteadOf "ssh://git@github.com/${{ env.ORG }}"
           git config --global --add url."https://x-access-token:${{ env.TOKEN }}@github.com/${{ env.ORG }}".insteadOf "https://github.com/${{ env.ORG }}"
 
