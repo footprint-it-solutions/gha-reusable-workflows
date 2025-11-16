@@ -77,7 +77,10 @@ jobs:
         id: app-token
         with:
           app-id: ${{ vars.TF_MODULE_PULLER_APP_ID }}
+          owner: footprint-it-solutions
           private-key: ${{ secrets.TF_MODULE_PULLER_PRIVATE_KEY }}
+          repositories: |
+            terraform-modules
 
       - name: Configure Git for Private TF Modules
         env:
