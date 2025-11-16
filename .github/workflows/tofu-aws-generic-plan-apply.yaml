@@ -27,7 +27,7 @@ on:
         type: string
       environment_name:
         description: "Environment name for GitHub Actions (optional)"
-        required: false
+        required: true
         type: string
       git_ref:
         description: "Git ref to be planned (optional, for checkout)"
