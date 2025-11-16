@@ -71,5 +71,5 @@ jobs:
                 ;;
             esac
 
-            helm push oci://public.ecr.aws/${{ github.repository_owner }}-$environment_full/helm
+            helm push "$packaged_chart_file" "oci://public.ecr.aws/${{ github.repository_owner }}-$environment_full/helm"
           done
