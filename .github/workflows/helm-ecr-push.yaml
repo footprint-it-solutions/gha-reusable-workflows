@@ -60,4 +60,16 @@ jobs:
 
             echo "Pushing $packaged_chart_file to ECR"
             helm push "$packaged_chart_file" "oci://${{ vars.AWS_ACCOUNT_ID }}.dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com/helm"
+
+            # Expand environment short name to full name
+            case "${{ inputs.environment_name }}" in
+              sbx)
+                environment_full="sandbox"
+                ;;
+              *)
+                environment_full="${{ inputs.environment_name }}"
+                ;;
+            esac
+
+            helm push oci://public.ecr.aws/${{ github.repository_owner }}-$environment_full/helm
           done
