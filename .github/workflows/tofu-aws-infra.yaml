@@ -67,28 +67,29 @@ jobs:
         role-to-assume: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/GitHubActions
         role-session-name: GitHubActions
 
-    - uses: actions/create-github-app-token@v2.1.4
-      id: generate_token
-      with:
-        app-id: ${{ vars.TF_MODULE_PULLER_APP_ID }}
-        owner: ${{ github.repository_owner }}
-        private-key: ${{ secrets.TF_MODULE_PULLER_PRIVATE_KEY }}
-        repositories: |
-          terraform-modules
+    # Commented out for now - using public modules only
+    # - uses: actions/create-github-app-token@v2.1.4
+    #   id: generate_token
+    #   with:
+    #     app-id: ${{ vars.TF_MODULE_PULLER_APP_ID }}
+    #     owner: ${{ github.repository_owner }}
+    #     private-key: ${{ secrets.TF_MODULE_PULLER_PRIVATE_KEY }}
+    #     repositories: |
+    #       terraform-modules
 
-    - name: ⚙️ Configure Git for Private TF Modules
-      env:
-        ORG: ${{ github.repository_owner }}
-        TOKEN: ${{ steps.generate_token.outputs.token }}
-      run: |
-        # This command tells Git to replace any 'https://github.com/$ORG'
-        # or 'ssh://git@github.com/$ORG' URL with an authenticated one using your token.
-        git config --global \
-          url."https://x-access-token:${{ env.TOKEN }}@github.com/${{ env.ORG }}".insteadOf \
-          "ssh://git@github.com/${{ env.ORG }}"
-        git config --global --add \
-          url."https://x-access-token:${{ env.TOKEN }}@github.com/${{ env.ORG }}".insteadOf \
-          "https://github.com/${{ env.ORG }}"
+    # - name: ⚙️ Configure Git for Private TF Modules
+    #   env:
+    #     ORG: ${{ github.repository_owner }}
+    #     TOKEN: ${{ steps.generate_token.outputs.token }}
+    #   run: |
+    #     # This command tells Git to replace any 'https://github.com/$ORG'
+    #     # or 'ssh://git@github.com/$ORG' URL with an authenticated one using your token.
+    #     git config --global \
+    #       url."https://x-access-token:${{ env.TOKEN }}@github.com/${{ env.ORG }}".insteadOf \
+    #       "ssh://git@github.com/${{ env.ORG }}"
+    #     git config --global --add \
+    #       url."https://x-access-token:${{ env.TOKEN }}@github.com/${{ env.ORG }}".insteadOf \
+    #       "https://github.com/${{ env.ORG }}"
 
     - name: Tofu Init
       id: init
