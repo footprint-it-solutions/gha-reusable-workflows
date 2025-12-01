@@ -6,7 +6,7 @@ on:
         required: true
         type: string
       environment_name:
-        description: "Environment to be bootstrappped"
+        description: "Environment to be bootstrapped"
         required: true
         type: string
       git_ref:
