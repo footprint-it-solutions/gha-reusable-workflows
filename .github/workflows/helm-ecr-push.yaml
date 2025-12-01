@@ -69,7 +69,7 @@ jobs:
                 owner="${{ github.repository_owner }}-sandbox"
                 ;;
               dev)
-                owner="c9j1u8i9"
+                owner="${{ github.repository_owner }}-dev"
                 ;;
               *)
                 owner="${{ github.repository_owner }}-${{ inputs.environment_name }}"
