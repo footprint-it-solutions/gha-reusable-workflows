@@ -74,9 +74,9 @@ jobs:
           role-session-name: GitHubActions
 
       # See https://registry.terraform.io/providers/integrations/github/latest/docs#github-app-installation
-      - name: Uncomment app_auth in providers.tf
-        shell: bash
-        run: sed -i 's/# app_auth/app_auth/' providers.tf
+      # - name: Uncomment app_auth in providers.tf
+      #   shell: bash
+      #   run: sed -i 's/# app_auth/app_auth/' providers.tf
 
       # Commented out for now - using public modules only
       # - uses: actions/create-github-app-token@v2.1.4
@@ -110,12 +110,20 @@ jobs:
         id: validate
         run: tofu validate
 
+      - uses: actions/create-github-app-token@v2.1.4
+        id: generate_token
+        with:
+          app-id: ${{ vars.TERRAFORM_GITHUB_APP_ID }}
+          owner: ${{ github.repository_owner }}
+          private-key: ${{ secrets.TERRAFORM_GITHUB_APP_PEM_FILE }}
+
       - name: OpenTofu Plan
         env:
-          GITHUB_OWNER: footprint-it-solutions
-          GITHUB_APP_ID: ${{ vars.TERRAFORM_GITHUB_APP_ID }}
-          GITHUB_APP_INSTALLATION_ID: ${{ vars.TERRAFORM_GITHUB_APP_INSTALLATION_ID }}
-          GITHUB_APP_PEM_FILE: ${{ secrets.TERRAFORM_GITHUB_APP_PEM_FILE }}
+          # GITHUB_OWNER: ${{ github.repository_owner }}
+          # GITHUB_APP_ID: ${{ vars.TERRAFORM_GITHUB_APP_ID }}
+          # GITHUB_APP_INSTALLATION_ID: ${{ vars.TERRAFORM_GITHUB_APP_INSTALLATION_ID }}
+          # GITHUB_APP_PEM_FILE: ${{ secrets.TERRAFORM_GITHUB_APP_PEM_FILE }}
+          GITHUB_TOKEN: ${{ steps.generate_token.outputs.token }}
         id: plan
         shell: bash
         run: |
