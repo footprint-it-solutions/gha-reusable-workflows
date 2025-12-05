@@ -73,6 +73,11 @@ jobs:
           role-to-assume: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/GitHubActions
           role-session-name: GitHubActions
 
+      # See https://registry.terraform.io/providers/integrations/github/latest/docs#github-app-installation
+      - name: Uncomment app_auth in providers.tf
+        shell: bash
+        run: sed -i 's/# app_auth/app_auth/' providers.tf
+
       # Commented out for now - using public modules only
       # - uses: actions/create-github-app-token@v2.1.4
       #   id: generate_token
