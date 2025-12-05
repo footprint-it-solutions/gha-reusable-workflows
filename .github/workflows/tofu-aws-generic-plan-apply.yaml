@@ -107,23 +107,18 @@ jobs:
         run: tofu init
 
       - name: OpenTofu Validate
+        env:
+          GITHUB_APP_ID: ${{ vars.TERRAFORM_GITHUB_APP_ID }}
+          GITHUB_APP_INSTALLATION_ID: ${{ vars.TERRAFORM_GITHUB_APP_INSTALLATION_ID }}
+          GITHUB_APP_PEM_FILE: ${{ secrets.TERRAFORM_GITHUB_APP_PEM_FILE }}
         id: validate
         run: tofu validate
 
-      - uses: actions/create-github-app-token@v2.1.4
-        id: generate_token
-        with:
-          app-id: ${{ vars.TERRAFORM_GITHUB_APP_ID }}
-          owner: ${{ github.repository_owner }}
-          private-key: ${{ secrets.TERRAFORM_GITHUB_APP_PEM_FILE }}
-
       - name: OpenTofu Plan
         env:
-          # GITHUB_OWNER: ${{ github.repository_owner }}
-          # GITHUB_APP_ID: ${{ vars.TERRAFORM_GITHUB_APP_ID }}
-          # GITHUB_APP_INSTALLATION_ID: ${{ vars.TERRAFORM_GITHUB_APP_INSTALLATION_ID }}
-          # GITHUB_APP_PEM_FILE: ${{ secrets.TERRAFORM_GITHUB_APP_PEM_FILE }}
-          GITHUB_TOKEN: ${{ steps.generate_token.outputs.token }}
+          GITHUB_APP_ID: ${{ vars.TERRAFORM_GITHUB_APP_ID }}
+          GITHUB_APP_INSTALLATION_ID: ${{ vars.TERRAFORM_GITHUB_APP_INSTALLATION_ID }}
+          GITHUB_APP_PEM_FILE: ${{ secrets.TERRAFORM_GITHUB_APP_PEM_FILE }}
         id: plan
         shell: bash
         run: |
