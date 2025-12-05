@@ -112,6 +112,7 @@ jobs:
 
       - name: OpenTofu Plan
         env:
+          GITHUB_OWNER: footprint-it-solutions
           GITHUB_APP_ID: ${{ vars.TERRAFORM_GITHUB_APP_ID }}
           GITHUB_APP_INSTALLATION_ID: ${{ vars.TERRAFORM_GITHUB_APP_INSTALLATION_ID }}
           GITHUB_APP_PEM_FILE: ${{ secrets.TERRAFORM_GITHUB_APP_PEM_FILE }}
