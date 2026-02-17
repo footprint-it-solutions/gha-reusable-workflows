@@ -33,7 +33,7 @@ jobs:
     environment: ${{ inputs.environment_name }}
     steps:
     - name: Setup Tofu
-      uses: opentofu/setup-opentofu@v1.0.2
+      uses: opentofu/setup-opentofu@v1.0.7
       with:
         tofu_version: ${{ inputs.tofu_version }}
         tofu_wrapper: true

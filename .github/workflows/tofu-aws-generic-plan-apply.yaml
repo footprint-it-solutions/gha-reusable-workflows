@@ -40,7 +40,7 @@ jobs:
       pull-requests: write # Required for commenting on PRs (if we add that later)
     steps:
       - name: Setup OpenTofu
-        uses: opentofu/setup-opentofu@v1.0.2
+        uses: opentofu/setup-opentofu@v1.0.7
         with:
           tofu_version: ${{ inputs.tofu_version }}
           tofu_wrapper: true
